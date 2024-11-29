@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Tareas</title>
+    <link rel="stylesheet" href="styles1.css">
+    <style>
+        .task:hover {
+            background-color: #f0f8ff; /* Color al pasar el cursor */
+            cursor: pointer;
+        }
+        .task.selected {
+            border: 2px solid #007bff; /* Resaltado al seleccionar */
+        }
+        .task {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Gestión de Tareas</h2>
+        <div class="info">
+            <p id="hora-actual" class="highlight"></p>
+            <p><strong>Nombre:</strong> Usuario</p>
+            <p><strong>Rol:</strong> Administrador</p>
+        </div>
+        <button onclick="mostrarModal('agregar')">Agregar</button>
+        <button onclick="mostrarModal('actualizar')">Actualizar</button>
+        <button onclick="eliminarTarea()">Eliminar</button>
+        <button onclick="salir()">Salir</button>
+    </div>
+
+    <div class="main">
+        <div class="task-container">
+            <h2>Tareas</h2>
+            <div class="columns">
+                <div class="column" id="pendiente" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <h3>Pendiente</h3>
+                </div>
+                <div class="column" id="en-proceso" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <h3>En Proceso</h3>
+                </div>
+                <div class="column" id="completado" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <h3>Completado</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="modal" id="modal-agregar">
+        <h3>Agregar Tarea</h3>
+        <input type="text" placeholder="Título" id="titulo-agregar">
+        <input type="text" placeholder="Descripción" id="descripcion-agregar">
+        <input type="date" id="fecha-agregar">
+        <button onclick="agregarTarea()">Guardar</button>
+        <button class="modal-close" onclick="cerrarModal()">Cancelar</button>
+    </div>
+
+    <div class="modal" id="modal-actualizar">
+        <h3>Actualizar Tarea</h3>
+        <input type="text" placeholder="Título" id="titulo-actualizar">
+        <input type="text" placeholder="Descripción" id="descripcion-actualizar">
+        <input type="date" id="fecha-actualizar">
+        <button onclick="actualizarTarea()">Guardar</button>
+        <button class="modal-close" onclick="cerrarModal()">Cancelar</button>
+    </div>
+
+    <script>
+        let tareaSeleccionada = null;
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drag(event) {
+            event.dataTransfer.setData("text", event.target.id);
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            const data = event.dataTransfer.getData("text");
+            const task = document.getElementById(data);
+            event.target.appendChild(task);
+        }
+
+        function actualizarHora() {
+            const ahora = new Date();
+            const horaFormateada = ahora.toLocaleTimeString();
+            document.getElementById('hora-actual').textContent = `Hora actual: ${horaFormateada}`;
+        }
+
+        function mostrarModal(tipo) {
+            if (tipo === 'agregar') {
+                document.getElementById('titulo-agregar').value = '';
+                document.getElementById('descripcion-agregar').value = '';
+                document.getElementById('fecha-agregar').value = '';
+            } else if (tipo === 'actualizar' && tareaSeleccionada) {
+                document.getElementById('titulo-actualizar').value = tareaSeleccionada.querySelector('.titulo').textContent;
+                document.getElementById('descripcion-actualizar').value = tareaSeleccionada.querySelector('.descripcion').textContent;
+                document.getElementById('fecha-actualizar').value = tareaSeleccionada.querySelector('.fecha').textContent;
+            }
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById(`modal-${tipo}`).style.display = 'block';
+        }
+
+        function cerrarModal() {
+            document.getElementById('overlay').style.display = 'none';
+            document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+        }
+
+        function agregarTarea() {
+            const titulo = document.getElementById('titulo-agregar').value;
+            const descripcion = document.getElementById('descripcion-agregar').value;
+            const fecha = document.getElementById('fecha-agregar').value;
+
+            if (!titulo || !descripcion || !fecha) {
+                alert('Por favor, completa todos los campos.');
+                return;
+            }
+
+            const nuevaTarea = document.createElement('div');
+            nuevaTarea.className = 'task';
+            nuevaTarea.draggable = true;
+            nuevaTarea.ondragstart = drag;
+            nuevaTarea.id = `task-${Date.now()}`;
+            nuevaTarea.innerHTML = `
+                <strong class="titulo">${titulo}</strong><br>
+                <span class="descripcion">${descripcion}</span><br>
+                <span class="fecha">${fecha}</span><br>
+                <strong>Autor:</strong> Usuario`;
+            nuevaTarea.addEventListener('click', () => seleccionarTarea(nuevaTarea));
+
+            document.getElementById('pendiente').appendChild(nuevaTarea);
+            cerrarModal();
+        }
+
+        function seleccionarTarea(tarea) {
+            if (tareaSeleccionada) {
+                tareaSeleccionada.classList.remove('selected');
+            }
+            tareaSeleccionada = tarea;
+            tareaSeleccionada.classList.add('selected');
+        }
+
+        function actualizarTarea() {
+            if (!tareaSeleccionada) {
+                alert('Por favor selecciona una tarea para actualizar.');
+                return;
+            }
+
+            const titulo = document.getElementById('titulo-actualizar').value;
+            const descripcion = document.getElementById('descripcion-actualizar').value;
+            const fecha = document.getElementById('fecha-actualizar').value;
+
+            tareaSeleccionada.querySelector('.titulo').textContent = titulo;
+            tareaSeleccionada.querySelector('.descripcion').textContent = descripcion;
+            tareaSeleccionada.querySelector('.fecha').textContent = fecha;
+
+            cerrarModal();
+        }
+
+        function eliminarTarea() {
+            if (!tareaSeleccionada) {
+                alert('Por favor selecciona una tarea para eliminar.');
+                return;
+            }
+            tareaSeleccionada.remove();
+            tareaSeleccionada = null;
+        }
+
+        function salir() {
+            alert('Saliendo del sistema...');
+            window.location.href = 'index.html';
+        }
+
+        setInterval(actualizarHora, 1000);
+    </script>
+</body>
+</html>
